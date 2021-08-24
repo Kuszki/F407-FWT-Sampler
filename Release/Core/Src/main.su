@@ -1,0 +1,2 @@
+main.c:74:6:SystemClock_Config	104	static,ignoring_inline_asm
+main.c:121:6:Error_Handler	0	static,ignoring_inline_asm
