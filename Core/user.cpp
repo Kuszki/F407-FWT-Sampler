@@ -1,11 +1,19 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "main.h"
+#include "crc.h"
 #include "dma.h"
 #include "i2s.h"
-#include "gpio.h"
+#include "pdm2pcm.h"
 #include "usart.h"
+#include "gpio.h"
+
+#define HTONS(A)  ((((uint16_t)(A) & 0xff00) >> 8) | (((uint16_t)(A) & 0x00ff) << 8))
+
+#define DATA_SIZE 64
+#define INPUT_SIZE 512
 
 extern "C"
 {
@@ -16,21 +24,40 @@ extern I2S_HandleTypeDef hi2s2;
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_spi2_rx;
 
-volatile bool doSend = false;
-volatile bool doReq = false;
+extern PDM_Filter_Handler_t PDM1_filter_handler;
+extern PDM_Filter_Config_t PDM1_filter_config;
+
+volatile int doSend = 0;
+volatile int doReq = 0;
+
+const size_t isize = INPUT_SIZE;
+const size_t osize = DATA_SIZE;
+
+uint16_t* ibuffer = nullptr;
+uint16_t* obuffer = nullptr;
 
 uint8_t dummy = 0;
+
+uint8_t PDMToPCM(uint16_t *PDMBuf, uint16_t *PCMBuf)
+{
+	for(int index = 0; index < INPUT_SIZE; ++index)
+	{
+		PDMBuf[index] = HTONS(PDMBuf[index]);
+	}
+
+	return PDM_Filter(PDMBuf, PCMBuf, &PDM1_filter_handler);
+}
 
 int main(void)
 {
 	/* FPU initialization */
 	SCB->CPACR |= ((3 << 10*2) | (3 << 11*2));
 
-	const size_t size = 16384;
-	uint16_t* buffer = (uint16_t*) malloc(size);
+	ibuffer = new uint16_t[isize];
+	obuffer = new uint16_t[osize];
 
-//	const char* str = "Twoja stara\n";
-//	const size_t strLen = strlen(str);
+	for (size_t i = 0; i < osize; ++i) obuffer[i] = 0;
+	for (size_t i = 0; i < isize; ++i) ibuffer[i] = 0;
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
 	HAL_Init();
@@ -43,40 +70,55 @@ int main(void)
 	MX_DMA_Init();
 	MX_I2S2_Init();
 	MX_USART2_UART_Init();
+	MX_CRC_Init();
+	MX_PDM2PCM_Init();
 
-	HAL_I2S_Receive_DMA(&hi2s2, buffer, size);
+	HAL_I2S_Receive_DMA(&hi2s2, ibuffer, isize);
+
 	HAL_UART_Receive_IT(&huart2, &dummy, 1);
 
-	while (1) if (doSend && doReq)
+	while (1) if (doReq)
 	{
-//		HAL_UART_Transmit(&huart2, str, strLen, 1000);
-//		HAL_Delay(10000);
+		HAL_Delay(1000);
 
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t*) buffer, size*2);
-
-		doSend = doReq = false;
+		doReq = 0;
+		doSend = 4;
 	}
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
+	HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
 
+	PDMToPCM(ibuffer, obuffer);
+
+	if (doSend)
+	{
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t*) obuffer, osize*2);
+		--doSend;
+	}
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
 	HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
 
-	if (!doSend) doSend = true;
+	PDMToPCM(ibuffer + isize/2, obuffer);
+
+	if (doSend)
+	{
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t*) obuffer, osize*2);
+		--doSend;
+	}
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	HAL_GPIO_TogglePin(GPIOD, LD4_Pin);
 
-	if (!doReq) doReq = true;
-
 	HAL_UART_Receive_IT(huart, &dummy, 1);
+
+	if (!doSend) doReq = 1;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
