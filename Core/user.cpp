@@ -41,14 +41,16 @@ uint16_t* obuffer = nullptr;
 
 uint8_t dummy = 0;
 
-uint8_t PDMToPCM(uint16_t *PDMBuf, uint16_t *PCMBuf)
+uint8_t PDMToPCM(uint16_t* pdmBuff, uint16_t* pcmBuff)
 {
-	for(int index = 0; index < INPUT_SIZE; ++index)
+	uint16_t input[INPUT_SIZE/2];
+
+	for(int index = 0; index < INPUT_SIZE/2; ++index)
 	{
-		PDMBuf[index] = HTONS(PDMBuf[index]);
+		input[index] = HTONS(pdmBuff[index]);
 	}
 
-	return PDM_Filter(PDMBuf, PCMBuf, &PDM1_filter_handler);
+	return PDM_Filter(input, pcmBuff, &PDM1_filter_handler);
 }
 
 int main(void)
@@ -92,8 +94,6 @@ int main(void)
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-	HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
-
 	PDMToPCM(ibuffer, obuffer);
 
 	if (doSend)
@@ -105,8 +105,6 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-	HAL_GPIO_TogglePin(GPIOD, LD3_Pin);
-
 	PDMToPCM(ibuffer + isize/2, obuffer);
 
 	if (doSend)
