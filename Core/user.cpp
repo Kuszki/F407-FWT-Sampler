@@ -21,8 +21,11 @@ extern "C"
 }
 
 extern I2S_HandleTypeDef hi2s2;
-extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_spi2_rx;
+
+extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
 
 extern PDM_Filter_Handler_t PDM1_filter_handler;
 extern PDM_Filter_Config_t PDM1_filter_config;
@@ -73,6 +76,7 @@ int main(void)
 	MX_CRC_Init();
 	MX_PDM2PCM_Init();
 
+	HAL_Delay(1000);
 	HAL_I2S_Receive_DMA(&hi2s2, ibuffer, isize);
 
 	HAL_UART_Receive_IT(&huart2, &dummy, 1);
