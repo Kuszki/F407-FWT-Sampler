@@ -7,13 +7,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2022 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -41,7 +40,7 @@ void MX_PDM2PCM_Init(void)
    /**
   */
   PDM1_filter_handler.bit_order = PDM_FILTER_BIT_ORDER_LSB;
-  PDM1_filter_handler.endianness = PDM_FILTER_ENDIANNESS_LE;
+  PDM1_filter_handler.endianness = PDM_FILTER_ENDIANNESS_BE;
   PDM1_filter_handler.high_pass_tap = 2122358088;
   PDM1_filter_handler.in_ptr_channels = 1;
   PDM1_filter_handler.out_ptr_channels = 1;
@@ -81,5 +80,3 @@ uint8_t MX_PDM2PCM_Process(uint16_t *PDMBuf, uint16_t *PCMBuf)
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

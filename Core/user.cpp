@@ -10,8 +10,6 @@
 #include "usart.h"
 #include "gpio.h"
 
-#define HTONS(A)  ((((uint16_t)(A) & 0xff00) >> 8) | (((uint16_t)(A) & 0x00ff) << 8))
-
 #define DATA_SIZE 64
 #define INPUT_SIZE 512
 
@@ -40,18 +38,6 @@ uint16_t* ibuffer = nullptr;
 uint16_t* obuffer = nullptr;
 
 uint8_t dummy = 0;
-
-uint8_t PDMToPCM(uint16_t* pdmBuff, uint16_t* pcmBuff)
-{
-	uint16_t input[INPUT_SIZE/2];
-
-	for(int index = 0; index < INPUT_SIZE/2; ++index)
-	{
-		input[index] = HTONS(pdmBuff[index]);
-	}
-
-	return PDM_Filter(input, pcmBuff, &PDM1_filter_handler);
-}
 
 int main(void)
 {
@@ -94,7 +80,7 @@ int main(void)
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-	PDMToPCM(ibuffer, obuffer);
+	PDM_Filter(ibuffer, obuffer, &PDM1_filter_handler);
 
 	if (doSend)
 	{
@@ -105,7 +91,7 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-	PDMToPCM(ibuffer + isize/2, obuffer);
+	PDM_Filter(ibuffer + isize/2, obuffer, &PDM1_filter_handler);
 
 	if (doSend)
 	{
