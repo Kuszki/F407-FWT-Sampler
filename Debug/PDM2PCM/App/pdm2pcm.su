@@ -1,2 +1,0 @@
-pdm2pcm.c:35:6:MX_PDM2PCM_Init	8	static
-pdm2pcm.c:62:9:MX_PDM2PCM_Process	0	static
