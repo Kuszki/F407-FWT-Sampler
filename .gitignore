@@ -30,5 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Dirs
 /Debug/
 /Release/
+/Drivers/
